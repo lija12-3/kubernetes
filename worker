@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+
+# Update package list and install prerequisites
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+# Add Kubernetes' official GPG key
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+# Add Kubernetes repository to Apt sources
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+# Update package list again to include Kubernetes repository
+sudo apt-get update
+
+# Install Kubernetes components
+sudo apt-get install -y kubelet kubeadm kubectl
+
+# Hold the Kubernetes packages to prevent accidental upgrades
+sudo apt-mark hold kubelet kubeadm kubectl
+
+# Verify installations
+kubectl version --client && echo && kubeadm version
+
+# Disable swap to meet Kubernetes requirements
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+# Install and configure UFW (Uncomplicated Firewall)
+sudo apt install -y ufw
+sudo ufw enable
+
+# Allow necessary ports for Kubernetes worker node communication
+sudo ufw allow 10250/tcp # Kubelet API
+sudo ufw allow 30000:32767/tcp # NodePort Services
+
+# Reload UFW to apply changes
+sudo ufw reload
+
+echo "Worker node setup completed. You can now join this node to the Kubernetes cluster using the kubeadm join command provided by your master node."
