@@ -49,13 +49,14 @@
         state: present
       # Installs the Kubernetes components kubelet, kubeadm, and kubectl.
 
-    - name: Hold Kubernetes packages to prevent accidental upgrades
-      apt:
-        name:
-          - kubelet
-          - kubeadm
-          - kubectl
-        state: held
+    - name: Mark Kubernetes packages as held to prevent accidental upgrades
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
       # Holds the Kubernetes packages to prevent them from being upgraded accidentally.
 
     - name: Verify installations
