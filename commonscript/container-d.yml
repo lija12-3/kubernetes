@@ -14,20 +14,17 @@
         state: present
         update_cache: yes
 
-    - name: Add Docker's official GPG key
-      apt_key:
-        url: https://download.docker.com/linux/debian/gpg
-        state: present
-
     - name: Create directory for apt keyrings
       file:
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
 
-    - name: Add Docker's GPG key (with dearmor)
-      command: >
-        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg
+    - name: Download Docker's GPG key
+      command: curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.gpg
+
+    - name: Convert Docker's GPG key to dearmor format
+      command: gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg /etc/apt/keyrings/docker.gpg
 
     - name: Add Docker repository to Apt sources
       copy:
