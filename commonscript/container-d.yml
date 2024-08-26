@@ -1,40 +1,59 @@
 ---
-- name: Setup Docker Repository
+- name: Setup Docker and Kubernetes on Debian
   hosts: all
   become: yes
   tasks:
-    - name: Install prerequisites
+    - name: Update package list and install prerequisites
       apt:
-        name:
-          - gnupg
-          - curl
-        state: present
         update_cache: yes
+        name:
+          - curl
+          - gnupg
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+        state: present
+      # This task updates the package list and installs essential packages.
 
     - name: Download Docker GPG key
       get_url:
         url: https://download.docker.com/linux/debian/gpg
         dest: /tmp/docker.gpg
+      # This task downloads Docker's GPG key.
 
-    - name: Convert Docker GPG key to dearmor format
-      command: gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg /tmp/docker.gpg
+    - name: Add Docker's GPG key
+      command: gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg /tmp/docker.gpg
       args:
-        creates: /etc/apt/trusted.gpg.d/debian.gpg
+        creates: /etc/apt/trusted.gpg.d/docker.gpg
+      # This task converts Docker's GPG key to a format suitable for APT.
 
     - name: Add Docker repository to Apt sources
       copy:
         dest: /etc/apt/sources.list.d/docker.list
         content: |
-          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/trusted.gpg.d/debian.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
+          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
+      # This task adds Docker's APT repository to the system.
 
     - name: Update apt cache
       apt:
         update_cache: yes
+      # This task updates the package list to include Docker's repository.
 
-    - name: Install Docker
+    - name: Install Docker components
       apt:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
         state: present
+      # This task installs Docker and containerd.
+
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version
+      ignore_errors: yes
+
+    - name: Display Docker version
+      debug:
+        msg: "Docker version: {{ docker_version.stdout }}"
+      # This task displays the installed Docker version.
