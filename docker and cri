@@ -1,6 +1,6 @@
 ---
-- name: Kubernetes Master Node Setup
-  hosts: master
+- name: Setup Kubernetes Master Node
+  hosts: all
   become: yes
   tasks:
     - name: Update package list and install prerequisites
@@ -14,148 +14,63 @@
           - apt-transport-https
           - ca-certificates
         state: present
-      # This task updates the package list and installs essential packages required for Kubernetes and Docker setup.
+      # This task updates the package list and installs essential packages.
 
-    - name: Disable swap
-      command: swapoff -a
-      # This task disables swap to ensure Kubernetes can function correctly, as swap is not recommended for Kubernetes nodes.
-
-    - name: Comment out swap entry in fstab
-      lineinfile:
-        path: /etc/fstab
-        regexp: '^.*swap.*$'
-        line: '#&'
-        state: present
-      # This task comments out the swap entry in the /etc/fstab file to ensure it is not enabled on reboot.
-
-    - name: Install UFW (Uncomplicated Firewall)
-      apt:
-        name: ufw
-        state: present
-      # This task installs UFW to manage firewall rules, which are necessary for securing the Kubernetes API server and other components.
-
-    - name: Allow Kubernetes API port
-      ufw:
-        rule: allow
-        name: '6443/tcp'
-      # This task allows traffic through port 6443, which is used by the Kubernetes API server.
-
-    - name: Allow etcd port
-      ufw:
-        rule: allow
-        name: '2379/tcp'
-      # This task allows traffic through port 2379, which is used by etcd for storing Kubernetes state.
-
-    - name: Allow etcd peer port
-      ufw:
-        rule: allow
-        name: '2380/tcp'
-      # This task allows traffic through port 2380, which is used by etcd peers for communication.
-
-    - name: Allow kubelet port
-      ufw:
-        rule: allow
-        name: '10250/tcp'
-      # This task allows traffic through port 10250, which is used by kubelet for communication with the API server.
-
-    - name: Allow kube-scheduler port
-      ufw:
-        rule: allow
-        name: '10251/tcp'
-      # This task allows traffic through port 10251, which is used by kube-scheduler for communication with the API server.
-
-    - name: Configure kernel modules for Kubernetes
+    - name: Configure sysctl settings for Kubernetes
       copy:
         dest: /etc/sysctl.d/k8s.conf
         content: |
-          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-iptables  = 1
           net.bridge.bridge-nf-call-ip6tables = 1
-          net.ipv4.ip_forward = 1
+          net.ipv4.ip_forward                 = 1
       notify: Reload sysctl
-      # This task creates a configuration file to ensure necessary sysctl settings for Kubernetes are applied. 
+      # This task creates a sysctl configuration file with settings required for Kubernetes networking.
 
-    - name: Load overlay and br_netfilter modules
-      block:
-        - name: Load overlay module
-          command: modprobe overlay
-          # This task loads the overlay kernel module, which is required for Kubernetes networking.
+    - name: Load overlay kernel module
+      command: modprobe overlay
+      # This task loads the overlay kernel module necessary for Kubernetes networking.
 
-        - name: Load br_netfilter module
-          command: modprobe br_netfilter
-          # This task loads the br_netfilter kernel module, which is required for Kubernetes to correctly filter bridge traffic.
+    - name: Load br_netfilter kernel module
+      command: modprobe br_netfilter
+      # This task loads the br_netfilter kernel module necessary for Kubernetes networking.
 
-    - name: Add Docker GPG key
+    - name: Add Docker's GPG key
       command: >
         curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg
-      # This task adds Docker's official GPG key to verify Docker packages.
+      # This task adds Docker's GPG key to verify Docker packages.
 
     - name: Add Docker repository to Apt sources
       command: >
         sudo add-apt-repository "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
-      # This task adds Docker's APT repository to the system to install Docker packages.
+      # This task adds Docker's APT repository to the system.
 
     - name: Update package list and install containerd
       apt:
         update_cache: yes
         name: containerd.io
         state: present
-      # This task updates the package list and installs containerd, which is a container runtime used by Kubernetes.
+      # This task updates the package list and installs containerd.
 
-    - name: Configure containerd
-      block:
-        - name: Generate containerd default config
-          command: containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
-          # This task generates the default containerd configuration file.
+    - name: Generate containerd default configuration
+      command: containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+      # This task generates the default containerd configuration file.
 
-        - name: Update containerd config to enable Systemd Cgroup
-          lineinfile:
-            path: /etc/containerd/config.toml
-            regexp: '^SystemdCgroup = false'
-            line: 'SystemdCgroup = true'
-            state: present
-          # This task updates the containerd configuration to enable Systemd for managing cgroups.
+    - name: Enable Systemd Cgroup in containerd configuration
+      lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: '^SystemdCgroup = false'
+        line: 'SystemdCgroup = true'
+        state: present
+      # This task updates the containerd configuration to enable Systemd Cgroup.
 
-    - name: Initialize Kubernetes master
-      command: kubeadm init
-      # This task initializes the Kubernetes master node using kubeadm.
-
-    - name: Set up kubeconfig for the current user
-      block:
-        - name: Create kube directory
-          file:
-            path: "{{ ansible_env.HOME }}/.kube"
-            state: directory
-            mode: '0755'
-          # This task creates the .kube directory in the user's home directory to store kubeconfig.
-
-        - name: Copy kube config
-          command: >
-            sudo cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config
-          # This task copies the Kubernetes admin configuration file to the user's kubeconfig location.
-
-        - name: Set ownership of kube config
-          file:
-            path: "{{ ansible_env.HOME }}/.kube/config"
-            owner: "{{ ansible_user_id }}"
-            group: "{{ ansible_user_gid }}"
-            mode: '0644'
-          # This task sets the correct ownership and permissions for the kubeconfig file.
-
-    - name: Download and apply Calico CNI manifests
-      block:
-        - name: Download Calico manifest
-          get_url:
-            url: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
-            dest: /tmp/calico.yaml
-          # This task downloads the Calico CNI plugin manifest.
-
-        - name: Apply Calico manifest
-          command: kubectl apply -f /tmp/calico.yaml
-          # This task applies the Calico CNI plugin manifest to the Kubernetes cluster.
+    - name: Restart containerd service
+      service:
+        name: containerd
+        state: restarted
+        enabled: yes
+      # This task restarts the containerd service to apply the new configuration.
 
   handlers:
     - name: Reload sysctl
       command: sysctl --system
       # This handler reloads sysctl settings after they are modified.
-
-
