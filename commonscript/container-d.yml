@@ -42,7 +42,7 @@
     - name: Install Docker components
       apt:
         name:
-          - docker-ce
+    
           - docker-ce-cli
           - containerd.io
         state: present
