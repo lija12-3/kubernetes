@@ -9,23 +9,30 @@
         cache_valid_time: 3600
         name:
           - curl
-          - gnupg2
+          - gnupg
           - software-properties-common
           - apt-transport-https
           - ca-certificates
         state: present
       # Updates the package list and installs essential packages.
 
+    - name: Download Kubernetes GPG key
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key
+        dest: /tmp/kubernetes.gpg
+      # Downloads Kubernetes' GPG key.
+
     - name: Add Kubernetes' GPG key
-      command: >
-        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-      # Adds Kubernetes' GPG key to verify Kubernetes packages.
+      command: gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes.gpg /tmp/kubernetes.gpg
+      args:
+        creates: /etc/apt/trusted.gpg.d/kubernetes.gpg
+      # Adds Kubernetes' GPG key to the trusted APT keyring.
 
     - name: Add Kubernetes repository to Apt sources
       copy:
         dest: /etc/apt/sources.list.d/kubernetes.list
         content: |
-          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /
+          deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /
       # Adds the Kubernetes repository to the Apt sources list.
 
     - name: Update package list again to include Kubernetes repository
