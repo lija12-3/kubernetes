@@ -78,3 +78,20 @@
     - name: Load br_netfilter kernel module
       command: modprobe br_netfilter
       # This task loads the br_netfilter kernel module.
+
+    - name: Configure containerd to use systemd cgroup
+      block:
+        - name: Ensure default containerd config file exists
+          command: containerd config default | tee /etc/containerd/config.toml >/dev/null 2>&1
+          # This task creates the default containerd config file if it does not exist.
+
+        - name: Update containerd config to use systemd cgroup
+          command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+          # This task updates the containerd config to enable systemd cgroup.
+
+        - name: Restart and enable containerd service
+          systemd:
+            name: containerd
+            state: restarted
+            enabled: yes
+          # This task restarts and enables the containerd service.
