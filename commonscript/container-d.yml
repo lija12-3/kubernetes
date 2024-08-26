@@ -35,13 +35,13 @@
       # This task loads the br_netfilter kernel module necessary for Kubernetes networking.
 
     - name: Add Docker's GPG key
-      command: >
-        curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg
+      shell: curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg
+      args:
+        warn: false
       # This task adds Docker's GPG key to verify Docker packages.
 
     - name: Add Docker repository to Apt sources
-      command: >
-        sudo add-apt-repository "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
+      command: sudo add-apt-repository "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
       # This task adds Docker's APT repository to the system.
 
     - name: Update package list and install containerd
@@ -52,7 +52,7 @@
       # This task updates the package list and installs containerd.
 
     - name: Generate containerd default configuration
-      command: containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+      shell: containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
       # This task generates the default containerd configuration file.
 
     - name: Enable Systemd Cgroup in containerd configuration
@@ -73,4 +73,4 @@
   handlers:
     - name: Reload sysctl
       command: sysctl --system
-      # This handler reloads sysctl settings after they are modified.
+      # This handler reloads sysctl settings a
