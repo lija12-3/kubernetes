@@ -35,13 +35,11 @@
       # This task loads the br_netfilter kernel module necessary for Kubernetes networking.
 
     - name: Add Docker's GPG key
-      shell: curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg
-      args:
-        warn: false
+      shell: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg
       # This task adds Docker's GPG key to verify Docker packages.
 
     - name: Add Docker repository to Apt sources
-      command: sudo add-apt-repository "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
+      shell: sudo add-apt-repository "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
       # This task adds Docker's APT repository to the system.
 
     - name: Update package list and install containerd
@@ -73,4 +71,4 @@
   handlers:
     - name: Reload sysctl
       command: sysctl --system
-      # This handler reloads sysctl settings a
+      # This handler reloads sysctl settings after they are modified.
