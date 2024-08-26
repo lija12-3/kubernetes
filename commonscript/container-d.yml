@@ -94,23 +94,6 @@
             creates: /etc/containerd/config.toml
           # This task creates the default containerd config file if it does not exist.
 
-        - name: Ensure correct permissions for containerd config
-          file:
-            path: /etc/containerd/config.toml
-            owner: root
-            group: root
-            mode: '0644'
-          # This task ensures the correct permissions for the containerd configuration file.
-
-        - name: Update containerd config to use systemd cgroup
-          command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
-          # This task updates the containerd config to enable systemd cgroup.
-
-        - name: Verify containerd config was updated
-          command: grep 'SystemdCgroup = true' /etc/containerd/config.toml
-          register: containerd_config_check
-          failed_when: containerd_config_check.rc != 0
-          # This task checks if the configuration was updated correctly.
 
         - name: Restart and enable containerd service
           systemd:
