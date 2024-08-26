@@ -92,9 +92,9 @@
     - name: Allow necessary ports for Kubernetes worker node communication
       ufw:
         rule: allow
-        name: "{{ item.name }}"
         port: "{{ item.port }}"
         proto: tcp
+        comment: "{{ item.name }}"
       loop:
         - { name: 'Kubelet API', port: 10250 }
         - { name: 'NodePort Services', port: '30000:32767' }
@@ -106,5 +106,4 @@
 
     - name: Display setup completion message
       debug:
-        msg: "Worker node setup completed. You can now join this node to the Kubernetes cluster using the kubeadm join command provided by your master node."
-      # Displays a message indicating the setup is complete and provides instructions for joining the cluster.
+        msg
