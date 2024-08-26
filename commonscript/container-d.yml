@@ -21,7 +21,9 @@
         mode: '0755'
 
     - name: Download Docker's GPG key
-      command: curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.gpg
+      get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.gpg
 
     - name: Convert Docker's GPG key to dearmor format
       command: gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg /etc/apt/keyrings/docker.gpg
@@ -29,14 +31,25 @@
     - name: Add Docker repository to Apt sources
       copy:
         dest: /etc/apt/sources.list.d/docker.list
-        content: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
+        content: |
+          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
 
     - name: Update apt cache
       apt:
         update_cache: yes
+
+    - name: Check if Docker repository is available
+      command: apt-cache policy containerd.io
+      register: containerd_cache
+      failed_when: "'containerd.io' not in containerd_cache.stdout"
 
     - name: Install containerd
       apt:
         name: containerd.io
         state: present
         update_cache: yes
+
+    - name: Verify installation of containerd
+      command: containerd --version
+      register: containerd_version
+      failed_when: "'containerd' not in containerd_version.stdout"
