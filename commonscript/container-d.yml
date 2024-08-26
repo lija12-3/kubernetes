@@ -43,7 +43,7 @@
       apt:
         name:
     
-          - docker-ce-cli
+      
           - containerd.io
         state: present
       # This task installs Docker and containerd.
