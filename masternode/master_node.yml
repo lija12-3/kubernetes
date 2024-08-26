@@ -112,7 +112,13 @@
 
     - name: Initialize Kubernetes cluster
       command: kubeadm init
-      # Initializes the Kubernetes cluster.
+      register: kubeadm_init
+      # Initializes the Kubernetes cluster and registers the output.
+
+    - name: Display Kubernetes cluster initialization status
+      debug:
+        msg: "Kubernetes master node setup complete. Use the following command on worker nodes to join the cluster: {{ kubeadm_init.stdout_lines[0] }}"
+      # Displays a message indicating the setup is complete and provides the join command for worker nodes.
 
     - name: Set up kubeconfig for the current user
       become: no
