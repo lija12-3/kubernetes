@@ -49,17 +49,7 @@
         state: present
       # Installs the Kubernetes components kubelet, kubeadm, and kubectl.
 
-    - name: Hold Kubernetes packages to prevent accidental upgrades
-      apt:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - kubelet
-        - kubeadm
-        - kubectl
-      # Marks Kubernetes packages as held to prevent accidental upgrades using dpkg.
-
-    - name: Mark Kubernetes packages as held to prevent upgrades
+    - name: Mark Kubernetes packages as held to prevent accidental upgrades
       dpkg_selections:
         name: "{{ item }}"
         selection: hold
@@ -102,9 +92,9 @@
     - name: Allow necessary ports for Kubernetes and SSH
       ufw:
         rule: allow
-        name: "{{ item.name }}"
         port: "{{ item.port }}"
         proto: tcp
+        comment: "{{ item.name }}"
       loop:
         - { name: 'Kubernetes API server', port: 6443 }
         - { name: 'etcd server client API', port: 2379 }
