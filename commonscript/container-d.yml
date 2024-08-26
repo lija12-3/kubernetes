@@ -14,32 +14,30 @@
           - apt-transport-https
           - ca-certificates
         state: present
-      # This task updates the package list and installs essential packages.
 
     - name: Add Docker's GPG key
-      shell: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg
-      # This task adds Docker's GPG key to verify Docker packages.
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
 
     - name: Add Docker repository to Apt sources
-      copy:
-        dest: /etc/apt/sources.list.d/docker.list
-        content: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable"
-      # This task directly adds Docker's repository to the Apt sources list.
+      apt_repository:
+        repo: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+        state: present
+        filename: docker
+      # This task adds Docker's repository to the system.
 
     - name: Update package list after adding Docker repository
       apt:
         update_cache: yes
-      # This task updates the package list after adding the Docker repository.
 
     - name: Install containerd
       apt:
         name: containerd.io
         state: present
-      # This task installs containerd.
 
     - name: Generate containerd default configuration
       shell: containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
-      # This task generates the default containerd configuration file.
 
     - name: Enable Systemd Cgroup in containerd configuration
       lineinfile:
@@ -47,16 +45,13 @@
         regexp: '^SystemdCgroup = false'
         line: 'SystemdCgroup = true'
         state: present
-      # This task updates the containerd configuration to enable Systemd Cgroup.
 
     - name: Restart containerd service
       service:
         name: containerd
         state: restarted
         enabled: yes
-      # This task restarts the containerd service to apply the new configuration.
 
   handlers:
     - name: Reload sysctl
       command: sysctl --system
-      # This handler reloads sysctl settings after they are modified.
