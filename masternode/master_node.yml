@@ -51,11 +51,22 @@
 
     - name: Hold Kubernetes packages to prevent accidental upgrades
       apt:
-        name:
-          - kubelet
-          - kubeadm
-          - kubectl
-        state: held
+        name: "{{ item }}"
+        state: present
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+      # Marks Kubernetes packages as held to prevent accidental upgrades using dpkg.
+
+    - name: Mark Kubernetes packages as held to prevent upgrades
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
       # Holds the Kubernetes packages to prevent them from being upgraded accidentally.
 
     - name: Verify Kubernetes installations
