@@ -1,5 +1,5 @@
 ---
-- name: Setup Docker and Kubernetes on Debian
+- name: Setup Docker on Debian
   hosts: all
   become: yes
   tasks:
@@ -31,29 +31,26 @@
       copy:
         dest: /etc/apt/sources.list.d/docker.list
         content: |
-          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
-      # This task adds Docker's APT repository to the system.
+          deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable
+      # This task adds Docker's APT repository for Debian.
 
     - name: Update apt cache
       apt:
         update_cache: yes
       # This task updates the package list to include Docker's repository.
 
-    - name: Install Docker components
+    - name: Install containerd.io
       apt:
-        name:
-    
-      
-          - containerd.io
+        name: containerd.io
         state: present
-      # This task installs Docker and containerd.
+      # This task installs containerd.
 
-    - name: Verify Docker installation
-      command: docker --version
-      register: docker_version
+    - name: Verify containerd installation
+      command: containerd --version
+      register: containerd_version
       ignore_errors: yes
 
-    - name: Display Docker version
+    - name: Display containerd version
       debug:
-        msg: "Docker version: {{ docker_version.stdout }}"
-      # This task displays the installed Docker version.
+        msg: "containerd version: {{ containerd_version.stdout }}"
+      # This task displays the installed containerd version.
