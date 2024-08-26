@@ -1,6 +1,6 @@
 ---
 - name: Setup Kubernetes Master Node
-  hosts: master
+  hosts: masternode_servers
   become: yes
   tasks:
     - name: Update package list and install prerequisites
