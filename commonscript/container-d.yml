@@ -6,50 +6,35 @@
     - name: Install prerequisites
       apt:
         name:
-          - apt-transport-https
-          - ca-certificates
+          - gnupg
           - curl
-          - gnupg2
-          - software-properties-common
         state: present
         update_cache: yes
 
-    - name: Create directory for apt keyrings
-      file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: '0755'
-
-    - name: Download Docker's GPG key
+    - name: Download Docker GPG key
       get_url:
         url: https://download.docker.com/linux/debian/gpg
-        dest: /etc/apt/keyrings/docker.gpg
+        dest: /tmp/docker.gpg
 
-    - name: Convert Docker's GPG key to dearmor format
-      command: gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg /etc/apt/keyrings/docker.gpg
+    - name: Convert Docker GPG key to dearmor format
+      command: gpg --dearmor -o /etc/apt/trusted.gpg.d/debian.gpg /tmp/docker.gpg
+      args:
+        creates: /etc/apt/trusted.gpg.d/debian.gpg
 
     - name: Add Docker repository to Apt sources
       copy:
         dest: /etc/apt/sources.list.d/docker.list
         content: |
-          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
+          deb [arch={{ ansible_architecture }} signed-by=/etc/apt/trusted.gpg.d/debian.gpg] https://download.docker.com/linux/debian {{ ansible_lsb.codename }} stable
 
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Check if Docker repository is available
-      command: apt-cache policy containerd.io
-      register: containerd_cache
-      failed_when: "'containerd.io' not in containerd_cache.stdout"
-
-    - name: Install containerd
+    - name: Install Docker
       apt:
-        name: containerd.io
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
         state: present
-        update_cache: yes
-
-    - name: Verify installation of containerd
-      command: containerd --version
-      register: containerd_version
-      failed_when: "'containerd' not in containerd_version.stdout"
