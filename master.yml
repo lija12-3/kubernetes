@@ -1,0 +1,118 @@
+---
+- name: Setup Kubernetes Master Node
+  hosts: master
+  become: yes
+  tasks:
+    - name: Update package list and install prerequisites
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        name:
+          - curl
+          - gnupg2
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+        state: present
+      # This task updates the package list and installs essential packages.
+
+    - name: Add Kubernetes' GPG key
+      command: >
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      # This task adds Kubernetes' GPG key to verify Kubernetes packages.
+
+    - name: Add Kubernetes repository to Apt sources
+      copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /
+      # This task adds the Kubernetes repository to the Apt sources list.
+
+    - name: Update package list again to include Kubernetes repository
+      apt:
+        update_cache: yes
+      # This task updates the package list to include the new Kubernetes repository.
+
+    - name: Install Kubernetes components
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+      # This task installs the Kubernetes components kubelet, kubeadm, and kubectl.
+
+    - name: Hold Kubernetes packages to prevent accidental upgrades
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: held
+      # This task holds the Kubernetes packages to prevent them from being upgraded accidentally.
+
+    - name: Verify Kubernetes installations
+      command: >
+        kubectl version --client && echo && kubeadm version
+      register: kube_versions
+      ignore_errors: yes
+      # This task verifies the installations of Kubernetes components by checking their versions.
+
+    - name: Disable swap
+      command: swapoff -a
+      # This task disables swap to meet Kubernetes requirements.
+
+    - name: Comment out swap entry in fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^.*swap.*$'
+        line: '# &'
+        state: present
+      # This task comments out the swap entry in fstab to ensure swap is not enabled on reboot.
+
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+      # This task installs UFW (Uncomplicated Firewall).
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+      # This task enables UFW.
+
+    - name: Allow necessary ports for Kubernetes and SSH
+      ufw:
+        rule: allow
+        name: "{{ item.name }}"
+        port: "{{ item.port }}"
+        proto: tcp
+      loop:
+        - { name: 'Kubernetes API server', port: 6443 }
+        - { name: 'etcd server client API', port: 2379 }
+        - { name: 'etcd server peer API', port: 2380 }
+        - { name: 'Kubelet API', port: 10250 }
+        - { name: 'Kube-scheduler', port: 10251 }
+        - { name: 'Kube-controller-manager', port: 10252 }
+        - { name: 'Kubelet read-only port', port: 10255 }
+        - { name: 'SSH', port: 22 }
+      # This task allows necessary ports for Kubernetes and SSH access through UFW.
+
+    - name: Reload UFW to apply changes
+      command: ufw reload
+      # This task reloads UFW to apply the new rules.
+
+    - name: Download Calico manifest
+      get_url:
+        url: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+        dest: /tmp/calico.yaml
+      # This task downloads the Calico manifest.
+
+    - name: Apply Calico manifest
+      command: kubectl apply -f /tmp/calico.yaml
+      # This task applies the Calico manifest to configure networking.
+
+    - name: Display setup completion message
+      debug:
+        msg: "Kubernetes master node setup complete."
+      # This task displays a message indicating the setup is complete.
