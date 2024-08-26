@@ -1,5 +1,5 @@
 - name: Setup Kubernetes Worker Node
-  hosts: worker
+  hosts: worker_servers
   become: yes
   tasks:
     - name: Update package list and install prerequisites
