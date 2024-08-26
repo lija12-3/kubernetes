@@ -90,7 +90,7 @@
     - name: Configure containerd to use systemd cgroup
       block:
         - name: Ensure default containerd config file exists
-          command: containerd config default | tee /etc/containerd/config.toml >/dev/null 2>&1
+          command: containerd config default > /etc/containerd/config.toml
           # This task creates the default containerd config file if it does not exist.
 
         - name: Update containerd config to use systemd cgroup
