@@ -1,4 +1,3 @@
----
 - name: Setup Kubernetes Worker Node
   hosts: worker
   become: yes
@@ -106,4 +105,5 @@
 
     - name: Display setup completion message
       debug:
-        msg
+        msg: "Kubernetes worker node setup is complete."
+      # Displays a message indicating the completion of the setup.
