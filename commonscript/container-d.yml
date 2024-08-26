@@ -1,4 +1,3 @@
----
 - name: Setup Docker on Debian
   hosts: all
   become: yes
@@ -91,11 +90,29 @@
       block:
         - name: Ensure default containerd config file exists
           command: containerd config default > /etc/containerd/config.toml
+          args:
+            creates: /etc/containerd/config.toml
           # This task creates the default containerd config file if it does not exist.
+
+        - name: Verify containerd config file exists
+          stat:
+            path: /etc/containerd/config.toml
+          register: containerd_config_file
+
+        - name: Fail if containerd config file was not created
+          fail:
+            msg: "Containerd configuration file /etc/containerd/config.toml was not created."
+          when: not containerd_config_file.stat.exists
 
         - name: Update containerd config to use systemd cgroup
           command: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
           # This task updates the containerd config to enable systemd cgroup.
+
+        - name: Verify containerd config was updated
+          command: grep 'SystemdCgroup = true' /etc/containerd/config.toml
+          register: containerd_config_check
+          failed_when: containerd_config_check.rc != 0
+          # This task checks if the configuration was updated correctly.
 
         - name: Restart and enable containerd service
           systemd:
@@ -103,3 +120,16 @@
             state: restarted
             enabled: yes
           # This task restarts and enables the containerd service.
+
+        - name: Verify containerd service status
+          systemd:
+            name: containerd
+            state: started
+            enabled: yes
+          register: containerd_status
+          # This task verifies that containerd is running.
+
+        - name: Show containerd service status
+          debug:
+            msg: "Containerd service status: {{ containerd_status }}"
+          # This task displays the status of the containerd service.
