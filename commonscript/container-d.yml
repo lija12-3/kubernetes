@@ -87,6 +87,7 @@
       # This task displays the installed containerd version.
 
     - name: Configure containerd to use systemd cgroup
+      become: yes
       block:
         - name: Ensure default containerd config file exists
           command: containerd config default > /etc/containerd/config.toml
